@@ -3,5 +3,25 @@
   "version": "1.0.0",
   "dependencies": {
     "request": "<2.47.0"
+  },
+  "description": "This recollie API allows you to tap into a list of car, drug, food, and product safety recalls. Recalls are searchable by keyword, issuing agency, vehicle-specific attribute(s), or any combination of these.",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/roymcfarland/recollie.git"
+  },
+  "keywords": [
+    "recall",
+    "consumer",
+    "protection"
+  ],
+  "author": "Roy McFarland, Max Richman, Antonio Bermudez",
+  "license": "GPL v3",
+  "bugs": {
+    "url": "https://github.com/roymcfarland/recollie/issues"
   }
 }
