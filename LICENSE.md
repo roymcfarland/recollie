@@ -4,8 +4,8 @@ GNU GENERAL PUBLIC LICENSE
  Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
  Everyone is permitted to copy and distribute verbatim copies
  of this license document, but changing it is not allowed. Thanks for
- downloading! Max Richman, Antonio Bermudez & Roy McFarland (a.k.a. The 
- Recollies).
+ downloading! Max Richman, Antonio Bermudez, Chris Rolfs & Roy McFarland 
+ (a.k.a. The Recollies).
 
                             Preamble
 
