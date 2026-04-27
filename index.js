@@ -1,6 +1,7 @@
 'use strict';
 
-const DEFAULT_ENDPOINT = 'https://www.saferproducts.gov/RestWebServices/Recall?format=json';
+const DEFAULT_ENDPOINT =
+  'https://www.saferproducts.gov/RestWebServices/Recall?format=json';
 const DEFAULT_LIMIT = 25;
 const DEFAULT_QUERY_PARAM = 'ProductName';
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -21,34 +22,123 @@ function normalizeSearchTerm(term) {
     throw new TypeError('Recollie search term must be a string.');
   }
 
-  const query = term.trim();
-  if (!query) {
+  const normalized = term.trim();
+  if (!normalized) {
     throw new TypeError('Recollie search term cannot be empty.');
   }
 
-  return query;
+  return normalized;
 }
 
 function normalizeOptions(options) {
   if (options === undefined || options === null) return {};
-  if (!options || typeof options !== 'object') {
+  if (!isObjectRecord(options)) {
     throw new TypeError('Recollie options must be an object.');
   }
 
   return options;
 }
 
-function normalizeObjectOption(value, name) {
+function normalizeConfig(options) {
+  const config = normalizeOptions(options);
+  const endpoint = normalizeString(
+    config.endpoint,
+    'endpoint',
+    DEFAULT_ENDPOINT
+  ).trim();
+  const queryParam = normalizeString(
+    config.queryParam,
+    'queryParam',
+    DEFAULT_QUERY_PARAM
+  ).trim();
+
+  if (!endpoint) throw new TypeError('Recollie endpoint cannot be empty.');
+  if (!queryParam) throw new TypeError('Recollie queryParam cannot be empty.');
+
+  return {
+    endpoint,
+    fetchImplementation: normalizeFetch(config.fetch),
+    headers: normalizeHeaders(config.headers),
+    limit: normalizePositiveInteger(config.limit, 'limit', DEFAULT_LIMIT, {
+      allowNull: true,
+    }),
+    params: normalizeParams(config.params),
+    queryParam,
+    queryPrefix: normalizeString(config.queryPrefix, 'queryPrefix'),
+    timeoutMs: normalizePositiveInteger(
+      config.timeoutMs,
+      'timeoutMs',
+      DEFAULT_TIMEOUT_MS
+    ),
+  };
+}
+
+function normalizeFetch(fetchImplementation) {
+  const resolved =
+    fetchImplementation === undefined ? globalThis.fetch : fetchImplementation;
+
+  if (typeof resolved !== 'function') {
+    throw new RecollieError('No fetch implementation is available.', {
+      code: 'FETCH_UNAVAILABLE',
+    });
+  }
+
+  return resolved;
+}
+
+function normalizeRecord(value, name) {
   if (value === undefined) return {};
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!isObjectRecord(value)) {
     throw new TypeError(`Recollie ${name} must be an object.`);
   }
 
   return value;
 }
 
-function normalizeStringOption(value, name, defaultValue = '') {
-  if (value === undefined) return defaultValue;
+function normalizeHeaders(headers) {
+  const normalized = normalizeRecord(headers, 'headers');
+
+  for (const value of Object.values(normalized)) {
+    if (value !== undefined && typeof value !== 'string') {
+      throw new TypeError('Recollie header values must be strings.');
+    }
+  }
+
+  return normalized;
+}
+
+function normalizeParams(params) {
+  const normalized = normalizeRecord(params, 'params');
+  const allowedTypes = new Set(['boolean', 'number', 'string']);
+
+  for (const value of Object.values(normalized)) {
+    if (
+      value !== undefined &&
+      value !== null &&
+      !allowedTypes.has(typeof value)
+    ) {
+      throw new TypeError(
+        'Recollie param values must be strings, numbers, booleans, null, or undefined.'
+      );
+    }
+  }
+
+  return normalized;
+}
+
+function normalizePositiveInteger(value, name, fallback, options = {}) {
+  if (value === undefined) return fallback;
+  if (options.allowNull && value === null) return null;
+  if (!Number.isInteger(value) || value <= 0) {
+    const suffix = options.allowNull ? ' or null' : '';
+    throw new TypeError(`Recollie ${name} must be a positive integer${suffix}.`);
+  }
+
+  return value;
+}
+
+function normalizeString(value, name, fallback = '') {
+  if (value === undefined) return fallback;
   if (typeof value !== 'string') {
     throw new TypeError(`Recollie ${name} must be a string.`);
   }
@@ -56,63 +146,67 @@ function normalizeStringOption(value, name, defaultValue = '') {
   return value;
 }
 
-function normalizeLimit(limit = DEFAULT_LIMIT) {
-  if (limit === null) return null;
-
-  const value = Number(limit);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new TypeError('Recollie limit must be a positive integer or null.');
-  }
-
-  return value;
+function isObjectRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function normalizeTimeoutMs(timeoutMs = DEFAULT_TIMEOUT_MS) {
-  const value = Number(timeoutMs);
+function buildSearchUrl(term, config) {
+  const url = new URL(config.endpoint);
 
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new TypeError('Recollie timeoutMs must be a positive integer.');
-  }
-
-  return value;
-}
-
-function buildSearchUrl(term, options) {
-  const {
-    endpoint = DEFAULT_ENDPOINT,
-    params,
-    queryParam = DEFAULT_QUERY_PARAM,
-    queryPrefix,
-  } = options;
-  const url = new URL(endpoint);
-  const additionalParams = normalizeObjectOption(params, 'params');
-  const parameterName = normalizeStringOption(
-    queryParam,
-    'queryParam',
-    DEFAULT_QUERY_PARAM
-  ).trim();
-  const prefix = normalizeStringOption(queryPrefix, 'queryPrefix');
-
-  if (!parameterName) {
-    throw new TypeError('Recollie queryParam cannot be empty.');
-  }
-
-  for (const [key, value] of Object.entries(additionalParams)) {
+  for (const [key, value] of Object.entries(config.params)) {
     if (value !== undefined && value !== null) {
       url.searchParams.set(key, String(value));
     }
   }
 
-  url.searchParams.set(parameterName, `${prefix}${term}`);
+  url.searchParams.set(config.queryParam, `${config.queryPrefix}${term}`);
   return url;
+}
+
+async function requestJson(url, config) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs);
+
+  try {
+    const response = await config.fetchImplementation(url, {
+      headers: {
+        Accept: 'application/json',
+        ...config.headers,
+      },
+      signal: controller.signal,
+    });
+
+    return await parseJsonResponse(response);
+  } catch (error) {
+    if (error instanceof RecollieError) throw error;
+
+    if (error && error.name === 'AbortError') {
+      throw new RecollieError(
+        `Recall API request timed out after ${config.timeoutMs}ms.`,
+        {
+          cause: error,
+          code: 'TIMEOUT',
+        }
+      );
+    }
+
+    throw new RecollieError('Recall API request failed.', {
+      cause: error,
+      code: 'REQUEST_FAILED',
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function parseJsonResponse(response) {
   const body = await response.text();
 
   if (!response.ok) {
+    const statusText = response.statusText || 'Error';
+
     throw new RecollieError(
-      `Recall API returned ${response.status} ${response.statusText || 'Error'}.`,
+      `Recall API returned ${response.status} ${statusText}.`,
       {
         body,
         code: 'HTTP_ERROR',
@@ -134,10 +228,7 @@ async function parseJsonResponse(response) {
 
 function limitResults(data, limit) {
   if (limit === null) return data;
-
-  if (Array.isArray(data)) {
-    return data.slice(0, limit);
-  }
+  if (Array.isArray(data)) return data.slice(0, limit);
 
   if (data && Array.isArray(data.results)) {
     return {
@@ -150,54 +241,33 @@ function limitResults(data, limit) {
 }
 
 async function search(term, options) {
-  const query = normalizeSearchTerm(term);
-  const config = normalizeOptions(options);
-  const {
-    fetch: fetchImplementation = globalThis.fetch,
-    headers,
-    limit,
-    timeoutMs,
-  } = config;
-  const requestHeaders = normalizeObjectOption(headers, 'headers');
-  const resultLimit = normalizeLimit(limit);
+  const config = normalizeConfig(options);
+  const url = buildSearchUrl(normalizeSearchTerm(term), config);
+  const data = await requestJson(url, config);
 
-  if (typeof fetchImplementation !== 'function') {
-    throw new RecollieError('No fetch implementation is available.', {
-      code: 'FETCH_UNAVAILABLE',
-    });
+  return limitResults(data, config.limit);
+}
+
+function recollie(term, options, callback) {
+  const { done, searchOptions } = normalizeCall(options, callback);
+  const promise = search(term, searchOptions);
+
+  if (!done) return promise;
+
+  callCallback(done, promise);
+  return undefined;
+}
+
+function normalizeCall(options, callback) {
+  if (typeof options === 'function') {
+    return { done: options, searchOptions: undefined };
   }
 
-  const controller = new AbortController();
-  const timeout = normalizeTimeoutMs(timeoutMs);
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetchImplementation(buildSearchUrl(query, config), {
-      headers: {
-        Accept: 'application/json',
-        ...requestHeaders,
-      },
-      signal: controller.signal,
-    });
-
-    return limitResults(await parseJsonResponse(response), resultLimit);
-  } catch (error) {
-    if (error instanceof RecollieError) throw error;
-
-    if (error && error.name === 'AbortError') {
-      throw new RecollieError(`Recall API request timed out after ${timeout}ms.`, {
-        cause: error,
-        code: 'TIMEOUT',
-      });
-    }
-
-    throw new RecollieError('Recall API request failed.', {
-      cause: error,
-      code: 'REQUEST_FAILED',
-    });
-  } finally {
-    clearTimeout(timeoutId);
+  if (callback !== undefined && typeof callback !== 'function') {
+    throw new TypeError('Recollie callback must be a function.');
   }
+
+  return { done: callback, searchOptions: options };
 }
 
 function callCallback(callback, promise) {
@@ -223,23 +293,11 @@ function callCallback(callback, promise) {
   );
 }
 
-function recollie(term, options, callback) {
-  const done = typeof options === 'function' ? options : callback;
-  const config = typeof options === 'function' ? undefined : options;
-  const promise = search(term, config);
-
-  if (typeof done === 'function') {
-    callCallback(done, promise);
-    return undefined;
-  }
-
-  return promise;
-}
-
-module.exports = recollie;
-module.exports.DEFAULT_ENDPOINT = DEFAULT_ENDPOINT;
-module.exports.DEFAULT_LIMIT = DEFAULT_LIMIT;
-module.exports.DEFAULT_QUERY_PARAM = DEFAULT_QUERY_PARAM;
-module.exports.DEFAULT_TIMEOUT_MS = DEFAULT_TIMEOUT_MS;
-module.exports.RecollieError = RecollieError;
-module.exports.search = search;
+module.exports = Object.assign(recollie, {
+  DEFAULT_ENDPOINT,
+  DEFAULT_LIMIT,
+  DEFAULT_QUERY_PARAM,
+  DEFAULT_TIMEOUT_MS,
+  RecollieError,
+  search,
+});

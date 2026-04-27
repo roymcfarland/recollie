@@ -2,13 +2,26 @@
   "name": "recollie",
   "version": "2.0.0",
   "description": "A tiny Node.js client for searching public recall APIs.",
+  "type": "commonjs",
   "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.js",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "index.js",
+    "index.d.ts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
+    "check": "npm test && npm run pack:check",
+    "prepublishOnly": "npm run check",
     "test": "node --test",
     "pack:check": "npm pack --dry-run"
   },
@@ -22,6 +35,8 @@
   "keywords": [
     "recall",
     "recalls",
+    "cpsc",
+    "openfda",
     "consumer",
     "safety",
     "protection"

@@ -62,6 +62,16 @@ test('limits array responses locally', async () => {
   assert.deepEqual(await recollie('crib', { fetch, limit: 2 }), ['a', 'b']);
 });
 
+test('can leave response sizes untouched', async () => {
+  const fetch = async () => jsonResponse(['a', 'b', 'c']);
+
+  assert.deepEqual(await recollie('crib', { fetch, limit: null }), [
+    'a',
+    'b',
+    'c',
+  ]);
+});
+
 test('rejects invalid search terms before making a request', async () => {
   let called = false;
   const fetch = async () => {
@@ -76,6 +86,28 @@ test('rejects invalid search terms before making a request', async () => {
   assert.equal(called, false);
 });
 
+test('rejects invalid callbacks', async () => {
+  assert.throws(() => recollie('crib', {}, 'not a callback'), {
+    message: 'Recollie callback must be a function.',
+    name: 'TypeError',
+  });
+});
+
+test('rejects invalid header and param values', async () => {
+  const fetch = async () => jsonResponse({});
+
+  await assert.rejects(recollie('crib', { fetch, headers: { 'x-bad': 1 } }), {
+    message: 'Recollie header values must be strings.',
+    name: 'TypeError',
+  });
+
+  await assert.rejects(recollie('crib', { fetch, params: { bad: {} } }), {
+    message:
+      'Recollie param values must be strings, numbers, booleans, null, or undefined.',
+    name: 'TypeError',
+  });
+});
+
 test('wraps non-2xx responses in a RecollieError', async () => {
   const fetch = async () =>
     new Response('upstream unavailable', {
@@ -87,6 +119,22 @@ test('wraps non-2xx responses in a RecollieError', async () => {
     code: 'HTTP_ERROR',
     name: 'RecollieError',
     status: 503,
+  });
+});
+
+test('wraps timeouts in a RecollieError', async () => {
+  const fetch = async (_url, { signal }) =>
+    new Promise((_resolve, reject) => {
+      signal.addEventListener(
+        'abort',
+        () => reject(new DOMException('aborted', 'AbortError')),
+        { once: true }
+      );
+    });
+
+  await assert.rejects(recollie('crib', { fetch, timeoutMs: 1 }), {
+    code: 'TIMEOUT',
+    name: 'RecollieError',
   });
 });
 
