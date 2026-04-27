@@ -1,27 +1,40 @@
 {
   "name": "recollie",
-  "version": "1.0.1",
-  "dependencies": {
-    "request": "<2.47.0"
-  },
-  "description": "This recollie API allows you to tap into a list of car, drug, food, and product safety recalls. Recalls are searchable by keyword, issuing agency, vehicle-specific attribute(s), or any combination of these.",
+  "version": "2.0.0",
+  "description": "A tiny Node.js client for searching public recall APIs.",
   "main": "index.js",
-  "devDependencies": {},
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test",
+    "pack:check": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/roymcfarland/recollie.git"
+    "url": "git+https://github.com/roymcfarland/recollie.git"
   },
   "keywords": [
     "recall",
+    "recalls",
     "consumer",
+    "safety",
     "protection"
   ],
-  "author": "Roy McFarland, Max Richman, Antonio Bermudez",
-  "license": "GPL v3",
+  "author": "Roy McFarland",
+  "contributors": [
+    "Max Richman",
+    "Antonio Bermudez",
+    "Chris Rolfs"
+  ],
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/roymcfarland/recollie/issues"
-  }
+  },
+  "homepage": "https://github.com/roymcfarland/recollie#readme"
 }
