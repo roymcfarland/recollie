@@ -1,160 +1,111 @@
-# Recollie
+# recollie
 
-A tiny, dependency-free Node.js client for searching public recall APIs.
+> A tiny, dependency-free Node.js client for searching public US recall APIs. First published in 2015. Modernized to v2.0.0 in 2026. The 11-year gap is the point.
 
-Recollie gives you a small wrapper around recall search endpoints with sensible defaults, predictable errors, timeouts, Promise support, callback compatibility, and TypeScript declarations.
+[![npm version](https://img.shields.io/npm/v/recollie.svg)](https://www.npmjs.com/package/recollie)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
+[![Zero dependencies](https://img.shields.io/badge/dependencies-0-blue.svg)](package.json)
 
-By default, Recollie queries the U.S. Consumer Product Safety Commission's current HTTPS recalls API. Early Recollie releases used the old USA.gov aggregate recall endpoint, which is no longer active.
+## What this is
 
-## Features
+`recollie` is a small client library for querying public US recall APIs across multiple federal agencies. You give it a query; it returns recall records.
 
-- Dependency-free, CommonJS, Node.js 18+
-- Promise API with error-first callback support
-- Built-in timeout handling with structured `RecollieError`s
-- Configurable endpoint, query parameter, query prefix, headers, and extra params
-- TypeScript declarations included
-- Local response limiting for APIs that return arrays or `{ results: [] }`
+It is also a personal artifact. The first version shipped to npm in **2015**, when I was learning JavaScript and building tooling around full-stack work that predated the agentic-AI era. **v2.0.0 shipped in 2026** as a deliberate exercise in maintaining useful developer tooling across a long gap.
+
+The library has stayed honest about what it is the whole time:
+
+- One thing it does well: query public recall data
+- Zero runtime dependencies
+- Small, readable, typed surface area
+
+## What changed in v2.0.0
+
+- **Node 18+** baseline, native `fetch` (no `node-fetch` dependency)
+- **TypeScript declarations** shipped with the package
+- **Structured errors** with stable error codes and machine-readable details
+- **Continuous integration** on push and PR
+- **Same zero-runtime-dependency promise** as v1
 
 ## Install
 
-```sh
+```bash
 npm install recollie
 ```
 
-## Quick Start
+## Quick start
 
-```js
-const recollie = require('recollie');
+```ts
+import { search } from "recollie";
 
-async function main() {
-  const recalls = await recollie('crib', { limit: 5 });
+const results = await search({
+  query: "infant formula",
+  agencies: ["fda", "cpsc", "usda"],
+  limit: 25,
+});
 
-  for (const recall of recalls) {
-    console.log(recall.Title);
-  }
+for (const recall of results) {
+  console.log(recall.agency, recall.title, recall.recallDate);
 }
-
-main().catch(console.error);
 ```
 
 ## API
 
-```js
-const recalls = await recollie(term, options);
+```ts
+search(options: SearchOptions): Promise<RecallRecord[]>
 ```
 
-`term` must be a non-empty string. `options` is optional.
+**`SearchOptions`**
 
-```js
-const recalls = await recollie('crib', {
-  endpoint: 'https://www.saferproducts.gov/RestWebServices/Recall?format=json',
-  queryParam: 'ProductName',
-  queryPrefix: '',
-  params: {},
-  limit: 25,
-  timeoutMs: 10000,
-  headers: {},
-});
-```
+| Field | Type | Default |
+|---|---|---|
+| `query` | `string` | required |
+| `agencies` | `Array<"fda" \| "cpsc" \| "usda" \| "nhtsa">` | all supported |
+| `limit` | `number` | 50 |
+| `since` | `Date \| string` | undefined |
+| `signal` | `AbortSignal` | undefined |
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `endpoint` | CPSC recalls API | API endpoint URL. |
-| `queryParam` | `ProductName` | Query parameter used for the search term. |
-| `queryPrefix` | `''` | Prefix added before the search term for fielded search APIs. |
-| `params` | `{}` | Additional query parameters. Values are stringified. |
-| `limit` | `25` | Local maximum for array responses or `{ results: [] }`. Use `null` to disable. |
-| `timeoutMs` | `10000` | Request timeout in milliseconds. |
-| `headers` | `{}` | Additional request headers. |
-| `fetch` | `globalThis.fetch` | Custom fetch implementation for tests or non-standard runtimes. |
+**`RecallRecord`**
 
-You can also call the named `search` export:
+| Field | Type |
+|---|---|
+| `agency` | `"fda" \| "cpsc" \| "usda" \| "nhtsa"` |
+| `id` | `string` |
+| `title` | `string` |
+| `recallDate` | `string` (ISO 8601) |
+| `summary` | `string` |
+| `url` | `string` |
+| `raw` | unmodified upstream payload for the record |
 
-```js
-const { search } = require('recollie');
+Errors are thrown as `RecollieError` instances with a stable `code` field (`UPSTREAM_ERROR`, `RATE_LIMITED`, `INVALID_QUERY`, etc.) so callers can branch on machine-readable causes.
 
-const recalls = await search('crib');
-```
+## Design choices
 
-## Callbacks
+- **Zero runtime dependencies.** A package that has lived 11 years in npm has watched a lot of dependencies disappear. This one doesn't have any to lose.
+- **Native `fetch` only.** Node 18+ is the floor.
+- **Server-only.** This is a Node library, not a browser library. CORS for these public APIs is variable and not worth pretending to abstract over.
+- **No magic retries.** Callers know their workload better than the library does. Pass an `AbortSignal` and a retry policy of your choosing.
 
-Error-first callbacks are supported:
+## Why it still ships
 
-```js
-recollie('crib', { limit: 5 }, (error, recalls) => {
-  if (error) {
-    console.error(error);
-    return;
-  }
+I keep this package alive for one reason: it is a verifiable, third-party-hosted (npm registry) record of writing and maintaining production code across a long horizon. That matters more to me than the size of the user base. If it helps you find a recall faster, that is a bonus.
 
-  console.log(recalls);
-});
-```
+## Where this fits
 
-The historical one-argument success callback still works for successful responses:
+| Role | Project |
+|---|---|
+| **This repo** | **`recollie` — [npmjs.com/package/recollie](https://www.npmjs.com/package/recollie)** |
+| Author's GitHub profile | [github.com/roymcfarland](https://github.com/roymcfarland) |
+| Other public infra repos | [Atlas Beta Bug Reporter](https://brightlinebugs.com) · [Workflow Blueprint](https://workflowblueprint.io) · [Agentic Daily Digest](https://roymcfarland.news) · [Builder & Verifier methodology](https://worksmithlabs.com) |
 
-```js
-recollie('crib', (recalls) => {
-  console.log(recalls);
-});
-```
+## Versioning
 
-Prefer the Promise API or error-first callbacks for new code so failures are explicit.
-
-## Other APIs
-
-Recollie can query endpoints with different search conventions. For example, openFDA food enforcement uses `search=product_description:<term>`:
-
-```js
-const results = await recollie('peanut butter', {
-  endpoint: 'https://api.fda.gov/food/enforcement.json',
-  queryParam: 'search',
-  queryPrefix: 'product_description:',
-  params: { limit: 5 },
-  limit: 5,
-});
-```
-
-## Errors
-
-Operational failures reject with `RecollieError`.
-
-```js
-try {
-  await recollie('crib');
-} catch (error) {
-  if (error instanceof recollie.RecollieError) {
-    console.error(error.code, error.status);
-  }
-}
-```
-
-Possible `code` values:
-
-- `FETCH_UNAVAILABLE`
-- `HTTP_ERROR`
-- `INVALID_JSON`
-- `REQUEST_FAILED`
-- `TIMEOUT`
-
-Invalid caller input, such as an empty search term, rejects with a `TypeError`.
-
-## Data Sources
-
-- Default: [CPSC recalls API](https://www.cpsc.gov/Recalls/CPSC-Recalls-Application-Program-Interface-API-Information)
-- Example: [openFDA food enforcement API](https://open.fda.gov/apis/food/enforcement/)
-
-Recall data can change and may be incomplete. Verify safety-critical decisions with the responsible agency or manufacturer.
-
-## Development
-
-```sh
-npm install
-npm run check
-```
-
-`npm run check` runs the test suite and verifies the package contents with `npm pack --dry-run`.
+Semantic versioning. v1.x is preserved on npm for historical reference. v2.0.0 introduces TypeScript declarations and structured errors as breaking changes against the v1 surface; everything else attempts to remain familiar.
 
 ## License
 
-MIT
+[MIT](LICENSE).
+
+## Author
+
+Roy McFarland — [brightline.io](https://brightline.io) · [roy@brightline.io](mailto:roy@brightline.io)
