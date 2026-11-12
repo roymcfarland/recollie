@@ -149,7 +149,7 @@ Recall data can change and may be incomplete. Verify safety-critical decisions w
 
 ## Versioning
 
-Semantic versioning. v1.x is preserved on npm for historical reference. v2.0.0 introduces TypeScript declarations, structured errors, and a new default data source as breaking changes against the v1 surface; everything else attempts to remain familiar.
+Semantic versioning. v1.x is preserved on npm for historical reference. v2.0.0 introduces TypeScript declarations, structured errors, and a new default data source as breaking changes against the v1 surface; everything else attempts to remain familiar. v3.0.0 drops support for Node 18 and 20 and requires Node 22 or newer as a breaking change, and v2.x remains available on npm for those runtimes.
 
 ## License
 
