@@ -4,7 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/recollie.svg)](https://www.npmjs.com/package/recollie)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
+[![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org/)
 [![Zero dependencies](https://img.shields.io/badge/dependencies-0-blue.svg)](package.json)
 
 ## What this is
@@ -25,7 +25,6 @@ The library has stayed honest about what it is the whole time:
 - **TypeScript declarations** shipped with the package
 - **Structured errors** (`RecollieError`) with stable, machine-readable error codes
 - **New default data source.** Early versions queried the old USA.gov aggregate recall endpoint, which is no longer active; v2.0.0 defaults to the CPSC recalls API
-- **Continuous integration** on push and PR (Node 18, 20, 22, 24)
 - **Same zero-runtime-dependency promise** as v1
 
 ## Install
@@ -124,7 +123,8 @@ try {
 ## Design choices
 
 - **Zero runtime dependencies.** A package that has lived more than a decade in npm has watched a lot of dependencies disappear. This one doesn't have any to lose.
-- **Native `fetch` only.** Node 18+ is the floor.
+- **Native `fetch` only.** Requires Node 22 or newer.
+- **Continuous integration** on push and PR (Node 22 and 24).
 - **Server-only.** This is a Node library, not a browser library. CORS for these public APIs is variable and not worth pretending to abstract over.
 - **No magic retries.** You get a configurable `timeoutMs` and can supply your own `fetch`; the retry policy is the caller's to choose.
 
