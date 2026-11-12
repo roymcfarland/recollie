@@ -1,6 +1,6 @@
 {
   "name": "recollie",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "A tiny Node.js client for searching public recall APIs.",
   "type": "commonjs",
   "main": "index.js",
