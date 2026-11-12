@@ -25,7 +25,7 @@ The library has stayed honest about what it is the whole time:
 - **TypeScript declarations** shipped with the package
 - **Structured errors** (`RecollieError`) with stable, machine-readable error codes
 - **New default data source.** Early versions queried the old USA.gov aggregate recall endpoint, which is no longer active; v2.0.0 defaults to the CPSC recalls API
-- **Continuous integration** on push and PR (Node 18, 20, 22)
+- **Continuous integration** on push and PR (Node 18, 20, 22, 24)
 - **Same zero-runtime-dependency promise** as v1
 
 ## Install
