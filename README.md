@@ -155,7 +155,7 @@ Make changes through pull requests to `main` and include any related documentati
 
 ### Security and automation
 
-[Dependabot](.github/dependabot.yml) checks GitHub Actions monthly, groups updates and allows up to three open update PRs. See [SECURITY.md](SECURITY.md) for how to report vulnerabilities privately.
+[Dependabot](.github/dependabot.yml) checks GitHub Actions monthly, groups updates and allows up to three open update PRs. See [SECURITY.md](SECURITY.md) for how to report vulnerabilities through GitHub private vulnerability reporting.
 
 ## Why it still ships
 

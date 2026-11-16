@@ -1,5 +1,7 @@
 # Security
 
-Email vulnerability reports to the maintainer at [roy@brightline.io](mailto:roy@brightline.io). Include the affected Recollie version, the impact and enough detail to investigate. Keep vulnerability details out of public GitHub issues while the maintainer investigates.
+Report vulnerabilities privately through GitHub. Open the repository's **Security** tab and choose [**Report a vulnerability**](https://github.com/roymcfarland/recollie/security/advisories/new).
 
-GitHub private vulnerability reporting is disabled for this repository.
+Include the affected Recollie version or commit, the affected feature, what you observed, the impact and steps to reproduce with test data. Omit credentials and personal data. Keep vulnerability details out of public issues and pull requests.
+
+If the form is unavailable, open a public issue that only says you have a security report and asks for a private channel.
