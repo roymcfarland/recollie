@@ -4,12 +4,11 @@
 
 [![npm version](https://img.shields.io/npm/v/recollie.svg)](https://www.npmjs.com/package/recollie)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org/)
 [![Zero dependencies](https://img.shields.io/badge/dependencies-0-blue.svg)](package.json)
 
 ## What this is
 
-`recollie` is a small client library for querying public US recall APIs. You give it a search term; it returns the matching recall records from the upstream API.
+`recollie` is a small client library for querying public US recall APIs. It searches the CPSC recalls API by default and returns the upstream JSON. The npm package ships CommonJS JavaScript and TypeScript declarations with zero runtime dependencies.
 
 It is also a personal artifact. The first version shipped to npm in **2014**, when I was learning JavaScript and building tooling around full-stack work that predated the agentic-AI era. **v2.0.0 shipped in 2026** as a deliberate exercise in maintaining useful developer tooling across a long gap.
 
@@ -29,6 +28,8 @@ The library has stayed honest about what it is the whole time:
 
 ## Install
 
+Use Node.js 22 or newer. [package.json](package.json) defines the supported Node.js range.
+
 ```bash
 npm install recollie
 ```
@@ -38,15 +39,22 @@ npm install recollie
 ```js
 const recollie = require('recollie');
 
-// Searches the CPSC recalls API (the default) by product name.
-const recalls = await recollie('crib', { limit: 5 });
+async function main() {
+  // Searches the CPSC recalls API (the default) by product name.
+  const recalls = await recollie('crib', { limit: 5 });
 
-for (const recall of recalls) {
-  console.log(recall.Title);
+  for (const recall of recalls) {
+    console.log(recall.Title);
+  }
 }
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
 ```
 
-The named `search` export is identical to the default call:
+For Promise-based calls, `recollie.search(term, options)` returns the same results as the default call. Use `await` inside an async function in CommonJS, as above.
 
 ```js
 const { search } = require('recollie');
@@ -60,20 +68,20 @@ const recalls = await search('crib');
 const recalls = await recollie(term, options);
 ```
 
-`term` is a required, non-empty string. `options` is optional:
+`term` must be a non-empty string after trimming. `options` is optional.
 
 | Option | Default | Description |
 |---|---|---|
 | `endpoint` | CPSC recalls API | API endpoint URL. |
 | `queryParam` | `"ProductName"` | Query parameter used for the search term. |
 | `queryPrefix` | `""` | Prefix added before the term for fielded-search APIs. |
-| `params` | `{}` | Extra query parameters (values are stringified). |
-| `limit` | `25` | Local cap for array or `{ results: [] }` responses. `null` disables. |
-| `timeoutMs` | `10000` | Request timeout in milliseconds. |
-| `headers` | `{}` | Additional request headers. |
-| `fetch` | `globalThis.fetch` | Custom `fetch` implementation (for tests or non-standard runtimes). |
+| `params` | `{}` | Extra query parameters. Strings, numbers and booleans are stringified. Null and undefined values are skipped. |
+| `limit` | `25` | Positive integer cap applied locally to arrays or to the `results` array in an object. `null` disables the cap. |
+| `timeoutMs` | `10000` | Positive integer timeout in milliseconds. A custom fetch must honor the abort signal for the timeout to take effect. |
+| `headers` | `{}` | Additional request headers with string values. The default `Accept` header is `application/json`. |
+| `fetch` | `globalThis.fetch` | Custom `fetch` implementation, for example to stub HTTP requests in tests. |
 
-`recollie` returns the parsed JSON from the upstream API, optionally length-limited. The shape is whatever the endpoint returns — the library does not normalize it.
+`recollie` resolves to upstream JSON in the endpoint’s own shape, with the optional local cap applied. TypeScript declares this result as `unknown`. See [index.d.ts](index.d.ts) for the package’s API types.
 
 ### Querying other APIs
 
@@ -91,7 +99,7 @@ const results = await recollie('peanut butter', {
 
 ### Callbacks
 
-Error-first callbacks are supported, and the legacy success-only callback still works:
+Pass a callback as the second argument, or as the third argument after options. Callback calls return `undefined`. Declare at least two parameters for an error-first callback.
 
 ```js
 recollie('crib', { limit: 5 }, (error, recalls) => {
@@ -100,7 +108,7 @@ recollie('crib', { limit: 5 }, (error, recalls) => {
 });
 ```
 
-Prefer the Promise API or error-first callbacks for new code so failures are explicit.
+A callback with fewer than two declared parameters is called with the result on success. On failure, Recollie throws the error in a microtask. Prefer the Promise API or a two-parameter callback to handle failures directly.
 
 ### Errors
 
@@ -108,7 +116,7 @@ Operational failures reject with a `RecollieError` carrying a stable `code`:
 
 `FETCH_UNAVAILABLE` · `HTTP_ERROR` · `INVALID_JSON` · `REQUEST_FAILED` · `TIMEOUT`
 
-`HTTP_ERROR` also carries `status` and `body`. Invalid caller input (such as an empty term) throws a `TypeError`.
+`HTTP_ERROR` carries `status` and the response `body`. `INVALID_JSON` also carries the response `body`. Invalid search input such as an empty term rejects with `TypeError`. An invalid callback argument throws `TypeError` synchronously.
 
 ```js
 try {
@@ -123,10 +131,31 @@ try {
 ## Design choices
 
 - **Zero runtime dependencies.** A package that has lived more than a decade in npm has watched a lot of dependencies disappear. This one doesn't have any to lose.
-- **Native `fetch` only.** Requires Node 22 or newer.
-- **Continuous integration** on push and PR (Node 22 and 24).
+- **Native `fetch` by default.** The library uses Node’s built-in `fetch` unless the caller supplies one.
 - **Server-only.** This is a Node library, not a browser library. CORS for these public APIs is variable and not worth pretending to abstract over.
 - **No magic retries.** You get a configurable `timeoutMs` and can supply your own `fetch`; the retry policy is the caller's to choose.
+
+## Development
+
+Use the npm that ships with a supported Node.js version and install from the project’s [npm lockfile](package-lock.json).
+
+```bash
+npm ci
+npm test
+npm run pack:check
+```
+
+Tests use Node’s built-in test runner and stub HTTP requests. `npm run check` runs the tests and package dry run together. The library ships JavaScript and declarations directly, so the package dry run is the packaging check. Configuration is passed through the API options. Recollie reads no environment variables.
+
+### Pull requests and releases
+
+Make changes through pull requests to `main` and include any related documentation in the same PR. Delete the branch after merge. Run `git worktree remove` with the scratch checkout’s path when you finish using one.
+
+[CI](.github/workflows/ci.yml) runs the install, test and package dry run on pull requests and pushes to `main`. To merge into `main`, the PR branch must be up to date and both the Node 22 and Node 24 checks must pass. Releases are published separately to npm. The `prepublishOnly` hook runs the tests and package dry run before publication.
+
+### Security and automation
+
+[Dependabot](.github/dependabot.yml) checks GitHub Actions monthly, groups updates and allows up to three open update PRs. See [SECURITY.md](SECURITY.md) for how to report vulnerabilities privately.
 
 ## Why it still ships
 
