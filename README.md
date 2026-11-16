@@ -1,6 +1,6 @@
 # recollie
 
-> A tiny, dependency-free Node.js client for searching public US recall APIs. First published in 2014. Modernized to v2.0.0 in 2026. The 12-year gap is the point.
+> A tiny, dependency-free Node.js client for searching public US recall APIs. First published in 2014. Modernized in 2026 and now at v3.0.0. The 12-year gap is the point.
 
 [![npm version](https://img.shields.io/npm/v/recollie.svg)](https://www.npmjs.com/package/recollie)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -18,12 +18,17 @@ The library has stayed honest about what it is the whole time:
 - Zero runtime dependencies
 - Small, readable, typed surface area
 
+## What changed in v3.0.0
+
+- **Node.js 22 or newer required.** This release drops support for Node.js 18 and 20.
+- **CI tests Node.js 22 and 24.**
+
 ## What changed in v2.0.0
 
 - **Node 18+** baseline, native `fetch` (no `node-fetch` dependency)
 - **TypeScript declarations** shipped with the package
 - **Structured errors** (`RecollieError`) with stable, machine-readable error codes
-- **New default data source.** Early versions queried the old USA.gov aggregate recall endpoint, which is no longer active; v2.0.0 defaults to the CPSC recalls API
+- **New default data source.** v2.0.0 defaults to the CPSC recalls API. Early versions queried the now-retired USA.gov aggregate endpoint `http://api.usa.gov/recalls/search.json`, which returned HTTP 404 on 2026-11-16.
 - **Same zero-runtime-dependency promise** as v1
 
 ## Install
@@ -178,7 +183,7 @@ Recall data can change and may be incomplete. Verify safety-critical decisions w
 
 ## Versioning
 
-Semantic versioning. v1.x is preserved on npm for historical reference. v2.0.0 introduces TypeScript declarations, structured errors, and a new default data source as breaking changes against the v1 surface; everything else attempts to remain familiar. v3.0.0 drops support for Node 18 and 20 and requires Node 22 or newer as a breaking change, and v2.x remains available on npm for those runtimes.
+Recollie follows semantic versioning. v1.x is preserved on npm for historical reference. v2.0.0 introduced TypeScript declarations, structured errors, and a new default data source as breaking changes from v1 while aiming to keep the rest of the API familiar. v3.0.0 requires Node.js 22 or newer. v2.x remains available on npm for Node.js 18 and 20.
 
 ## License
 
