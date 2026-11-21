@@ -64,7 +64,12 @@ For Promise-based calls, `recollie.search(term, options)` returns the same resul
 ```js
 const { search } = require('recollie');
 
-const recalls = await search('crib');
+async function main() {
+  const recalls = await search('crib');
+  console.log(recalls.length);
+}
+
+main();
 ```
 
 ## API
